@@ -1,0 +1,26 @@
+{
+    "name": "anime-tcg-discord-bot",
+    "version": "1.0.0",
+    "description": "Discord Bot thu thập nhân vật anime dạng TCG",
+    "main": "src/index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/index.js",
+        "dev": "node --watch src/index.js"
+    },
+    "keywords": [
+        "discord",
+        "bot",
+        "anime",
+        "tcg",
+        "gacha"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "discord.js": "^14.14.1",
+        "better-sqlite3": "^11.3.0",
+        "node-cron": "^3.0.3",
+        "dotenv": "^16.4.5"
+    }
+}
