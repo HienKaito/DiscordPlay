@@ -144,3 +144,119 @@ export const settingsRepo = {
         return db.prepare('SELECT guild_id, spawn_channel_id FROM server_settings WHERE spawn_channel_id IS NOT NULL').all();
     }
 };
+
+export const tradeRepo = {
+    // Create new trade
+    createTrade(initiatorId, targetId, messageId, channelId, expiresAt) {
+        const stmt = db.prepare(`
+            INSERT INTO trades (initiator_id, target_id, message_id, channel_id, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        `);
+        return stmt.run(initiatorId, targetId, messageId, channelId, expiresAt);
+    },
+
+    // Get trade by ID
+    getById(id) {
+        return db.prepare('SELECT * FROM trades WHERE id = ?').get(id);
+    },
+
+    // Get trade by message ID
+    getByMessageId(messageId) {
+        return db.prepare('SELECT * FROM trades WHERE message_id = ?').get(messageId);
+    },
+
+    // Get pending trade for user
+    getPendingTrade(userId) {
+        return db.prepare(`
+            SELECT * FROM trades 
+            WHERE (initiator_id = ? OR target_id = ?) 
+            AND status IN ('pending', 'selecting', 'confirming')
+            AND expires_at > datetime('now')
+        `).get(userId, userId);
+    },
+
+    // Update trade status
+    updateStatus(tradeId, status) {
+        return db.prepare('UPDATE trades SET status = ? WHERE id = ?').run(status, tradeId);
+    },
+
+    // Update message ID
+    updateMessageId(tradeId, messageId) {
+        return db.prepare('UPDATE trades SET message_id = ? WHERE id = ?').run(messageId, tradeId);
+    },
+
+    // Set user confirmation
+    setConfirmation(tradeId, userId, confirmed) {
+        const trade = this.getById(tradeId);
+        if (!trade) return null;
+
+        if (trade.initiator_id === userId) {
+            return db.prepare('UPDATE trades SET initiator_confirmed = ? WHERE id = ?').run(confirmed ? 1 : 0, tradeId);
+        } else {
+            return db.prepare('UPDATE trades SET target_confirmed = ? WHERE id = ?').run(confirmed ? 1 : 0, tradeId);
+        }
+    },
+
+    // Add item to trade
+    addTradeItem(tradeId, userId, characterId) {
+        const stmt = db.prepare('INSERT INTO trade_items (trade_id, user_id, character_id) VALUES (?, ?, ?)');
+        return stmt.run(tradeId, userId, characterId);
+    },
+
+    // Remove all items for user in trade
+    clearUserItems(tradeId, userId) {
+        return db.prepare('DELETE FROM trade_items WHERE trade_id = ? AND user_id = ?').run(tradeId, userId);
+    },
+
+    // Get trade items for a trade
+    getTradeItems(tradeId) {
+        return db.prepare(`
+            SELECT ti.*, c.name_romaji, c.source_anime, c.rarity, c.image_url
+            FROM trade_items ti
+            JOIN characters c ON ti.character_id = c.id
+            WHERE ti.trade_id = ?
+        `).all(tradeId);
+    },
+
+    // Get items by user in trade
+    getUserItems(tradeId, userId) {
+        return db.prepare(`
+            SELECT ti.*, c.name_romaji, c.source_anime, c.rarity, c.image_url
+            FROM trade_items ti
+            JOIN characters c ON ti.character_id = c.id
+            WHERE ti.trade_id = ? AND ti.user_id = ?
+        `).all(tradeId, userId);
+    },
+
+    // Execute trade (swap ownership)
+    executeTrade(tradeId) {
+        const trade = this.getById(tradeId);
+        if (!trade) return false;
+
+        const initiatorItems = this.getUserItems(tradeId, trade.initiator_id);
+        const targetItems = this.getUserItems(tradeId, trade.target_id);
+
+        const transferItem = db.prepare(`
+            UPDATE collections SET user_id = ? WHERE user_id = ? AND character_id = ?
+        `);
+
+        // Transfer initiator's items to target
+        for (const item of initiatorItems) {
+            transferItem.run(trade.target_id, trade.initiator_id, item.character_id);
+        }
+
+        // Transfer target's items to initiator
+        for (const item of targetItems) {
+            transferItem.run(trade.initiator_id, trade.target_id, item.character_id);
+        }
+
+        // Mark trade as completed
+        this.updateStatus(tradeId, 'completed');
+        return true;
+    },
+
+    // Cancel trade
+    cancelTrade(tradeId) {
+        return this.updateStatus(tradeId, 'cancelled');
+    }
+};

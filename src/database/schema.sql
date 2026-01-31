@@ -50,3 +50,30 @@ CREATE TABLE IF NOT EXISTS spawn_history (
 CREATE INDEX IF NOT EXISTS idx_collections_user ON collections(user_id);
 CREATE INDEX IF NOT EXISTS idx_spawn_expires ON spawn_history(expires_at);
 CREATE INDEX IF NOT EXISTS idx_spawn_message ON spawn_history(message_id);
+
+-- Trade sessions
+CREATE TABLE IF NOT EXISTS trades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    initiator_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','selecting','confirming','completed','cancelled','expired')),
+    initiator_confirmed INTEGER DEFAULT 0,
+    target_confirmed INTEGER DEFAULT 0,
+    message_id TEXT,
+    channel_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL
+);
+
+-- Trade items (characters being traded)
+CREATE TABLE IF NOT EXISTS trade_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    character_id INTEGER NOT NULL,
+    FOREIGN KEY (trade_id) REFERENCES trades(id),
+    FOREIGN KEY (character_id) REFERENCES characters(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trades_users ON trades(initiator_id, target_id);
+CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
