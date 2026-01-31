@@ -5,7 +5,16 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 // Initialize database (import để chạy schema)
-import './database/db.js';
+import db from './database/db.js';
+
+// Cleanup expired trades on startup
+const cleanupResult = db.prepare(`
+    UPDATE trades SET status = 'expired' 
+    WHERE status IN ('pending', 'selecting', 'confirming')
+`).run();
+if (cleanupResult.changes > 0) {
+    console.log(`[Cleanup] Expired ${cleanupResult.changes} stuck trades`);
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

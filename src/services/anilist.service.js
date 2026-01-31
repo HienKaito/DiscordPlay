@@ -79,8 +79,75 @@ export async function fetchRandomCharacter() {
   };
 }
 
+const SEARCH_CHARACTER_QUERY = `
+query ($search: String) {
+  Character(search: $search) {
+    id
+    name {
+      full
+      native
+    }
+    image {
+      large
+    }
+    gender
+    favourites
+    media(perPage: 1, sort: POPULARITY_DESC) {
+      nodes {
+        title {
+          romaji
+          english
+        }
+      }
+    }
+  }
+}
+`;
+
+export async function searchCharacter(searchTerm) {
+  const response = await fetch(config.anilistUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query: SEARCH_CHARACTER_QUERY,
+      variables: { search: searchTerm }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`AniList API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.errors) {
+    return null; // Character not found
+  }
+
+  const char = data.data?.Character;
+  if (!char) {
+    return null;
+  }
+
+  const media = char.media?.nodes?.[0];
+
+  return {
+    anilistId: char.id,
+    nameRomaji: char.name?.full || 'Unknown',
+    nameNative: char.name?.native || null,
+    imageUrl: char.image?.large || '',
+    sourceAnime: media?.title?.romaji || media?.title?.english || 'Unknown',
+    gender: char.gender || null,
+    favorites: char.favourites || 0
+  };
+}
+
 function truncateDescription(desc) {
   // Remove HTML tags and truncate to 100 chars
   const cleaned = desc.replace(/<[^>]*>/g, '').replace(/\n/g, ' ');
   return cleaned.length > 100 ? cleaned.substring(0, 97) + '...' : cleaned;
 }
+

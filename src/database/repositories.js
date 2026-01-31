@@ -116,7 +116,7 @@ export const spawnRepo = {
         const stmt = db.prepare(`
             UPDATE spawn_history 
             SET claimed_by = ?, claimed_at = CURRENT_TIMESTAMP 
-            WHERE message_id = ? AND claimed_by IS NULL
+            WHERE message_id = ? AND claimed_by IS NULL AND expires_at > datetime('now')
         `);
         return stmt.run(userId, messageId);
     }
@@ -165,13 +165,20 @@ export const tradeRepo = {
         return db.prepare('SELECT * FROM trades WHERE message_id = ?').get(messageId);
     },
 
-    // Get pending trade for user
+    // Get pending trade for user (also auto-expire old trades)
     getPendingTrade(userId) {
+        // Đầu tiên, đánh dấu các trades đã hết hạn
+        db.prepare(`
+            UPDATE trades SET status = 'expired' 
+            WHERE status IN ('pending', 'selecting', 'confirming') 
+            AND expires_at <= datetime('now')
+        `).run();
+
+        // Sau đó query trades còn active
         return db.prepare(`
             SELECT * FROM trades 
             WHERE (initiator_id = ? OR target_id = ?) 
             AND status IN ('pending', 'selecting', 'confirming')
-            AND expires_at > datetime('now')
         `).get(userId, userId);
     },
 

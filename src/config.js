@@ -10,10 +10,10 @@ export const config = {
 
     // Rarity settings (based on favorites count)
     rarity: {
-        legendary: { minFavorites: 50000, chance: 0.005, color: 0xFFD700, emoji: '🟡' },
-        epic: { minFavorites: 10000, chance: 0.025, color: 0x9900FF, emoji: '🟣' },
-        rare: { minFavorites: 2000, chance: 0.07, color: 0x0066FF, emoji: '🔵' },
-        uncommon: { minFavorites: 500, chance: 0.20, color: 0x00FF00, emoji: '🟢' },
+        legendary: { minFavorites: 10000, chance: 0.005, color: 0xFFD700, emoji: '🟡' },
+        epic: { minFavorites: 8000, chance: 0.025, color: 0x9900FF, emoji: '🟣' },
+        rare: { minFavorites: 5000, chance: 0.07, color: 0x0066FF, emoji: '🔵' },
+        uncommon: { minFavorites: 1000, chance: 0.20, color: 0x00FF00, emoji: '🟢' },
         common: { minFavorites: 0, chance: 0.70, color: 0xFFFFFF, emoji: '⚪' }
     },
 
