@@ -20,10 +20,6 @@ export function createSpawnEmbed(character, expiresAt) {
         .setFooter({ text: `React ❤️ để claim • Hết hạn sau ${timeLeft} phút` })
         .setTimestamp();
 
-    if (character.name_native || character.nameNative) {
-        embed.addFields({ name: 'Tên gốc', value: character.name_native || character.nameNative, inline: true });
-    }
-
     return embed;
 }
 

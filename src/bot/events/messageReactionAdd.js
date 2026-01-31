@@ -21,22 +21,17 @@ export async function execute(client, reaction, user) {
 
     // Xử lý claim
     const result = await handleClaim(reaction, user);
+    const channel = reaction.message.channel;
 
     if (result.success) {
-        // Gửi DM thông báo thành công (optional, có thể bỏ nếu muốn)
-        try {
-            await user.send(`🎉 Bạn đã thu thập **${result.character.name_romaji}**!`);
-        } catch (err) {
-            // User có thể tắt DM, bỏ qua
-        }
+        // Gửi thông báo vào channel
+        await channel.send(`🎉 <@${user.id}> đã thu thập **${result.character.name_romaji}**!`);
     } else if (result.reason && result.reason !== 'bot' && result.reason !== 'wrong_emoji') {
         const errorMsg = getClaimErrorMessage(result.reason);
         if (errorMsg) {
-            try {
-                await user.send(errorMsg);
-            } catch (err) {
-                // User có thể tắt DM
-            }
+            // Gửi lỗi vào channel (tự xóa sau 5 giây)
+            const msg = await channel.send(`<@${user.id}> ${errorMsg}`);
+            setTimeout(() => msg.delete().catch(() => { }), 5000);
         }
     }
 }
